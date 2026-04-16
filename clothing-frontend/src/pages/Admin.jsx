@@ -373,23 +373,48 @@ function Categories() {
     finally { setLoading(false) }
   }
 
-  const handleSubmit = async () => {
-    if (!form.name) return alert("Vui lòng nhập tên danh mục")
-    setSaving(true)
-    try {
-      await API.post("/categories", form)
-      setShowModal(false)
-      setForm({ name: "", description: "", image: "" })
-      fetchCategories()
-    } catch (err) { console.error(err) }
-    finally { setSaving(false) }
+const handleSubmit = async () => {
+  const name = form.name.trim()
+
+  if (!name) {
+    return alert("Tên danh mục không được để trống")
   }
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Xóa danh mục này?")) return
-    try { await API.delete(`/categories/${id}`); fetchCategories() }
-    catch (err) { console.error(err) }
+  if (name.length < 2) {
+    return alert("Tên phải >= 2 ký tự")
   }
+
+  const isDuplicate = categories.some(
+    c => c.name.toLowerCase() === name.toLowerCase()
+  )
+
+  if (isDuplicate) {
+    return alert("Danh mục đã tồn tại")
+  }
+
+  setSaving(true)
+  try {
+    await API.post("/categories", { ...form, name })
+    setShowModal(false)
+    setForm({ name: "", description: "", image: "" })
+    fetchCategories()
+  } catch (err) {
+    console.error(err)
+  } finally {
+    setSaving(false)
+  }
+}
+
+ const handleDelete = async (cat) => {
+  if (!window.confirm(`Bạn có chắc chắn muốn xoá danh mục "${cat.name}" không?`)) return
+
+  try {
+    await API.delete(`/categories/${cat._id}`)
+    fetchCategories()
+  } catch (err) {
+    console.error(err)
+  }
+}
 
   if (loading) return <Spinner />
 
@@ -411,7 +436,7 @@ function Categories() {
               <p style={styles.catName}>{cat.name}</p>
               {cat.description && <p style={styles.catDesc}>{cat.description}</p>}
             </div>
-            <button onClick={() => handleDelete(cat._id)} style={styles.deleteBtnSm}>✕</button>
+           <button onClick={() => handleDelete(cat)} style={styles.deleteBtnSm}>✕</button>
           </div>
         ))}
       </div>
