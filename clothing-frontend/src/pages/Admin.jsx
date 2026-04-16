@@ -120,30 +120,43 @@ function Dashboard() {
         <h2 style={styles.sectionTitle}>Đơn hàng gần đây</h2>
         <div style={styles.tableWrap}>
           <table style={styles.table}>
-            <thead>
-              <tr style={styles.thead}>
-                <th style={styles.th}>Khách hàng</th>
-                <th style={styles.th}>Địa chỉ</th>
-                <th style={styles.th}>Tổng tiền</th>
-                <th style={styles.th}>Trạng thái</th>
-                <th style={styles.th}>Ngày đặt</th>
-              </tr>
-            </thead>
-            <tbody>
-              {recentOrders.map(order => (
-                <tr key={order._id} style={styles.tr}>
-                  <td style={styles.td}>{order.user?.username || "—"}</td>
-                  <td style={styles.td}>{order.shippingAddress}</td>
-                  <td style={styles.td}>{order.totalPrice.toLocaleString("vi-VN")}₫</td>
-                  <td style={styles.td}>
-                    <span style={{ ...styles.badge, background: statusColor[order.status] + "22", color: statusColor[order.status] }}>
-                      {statusLabel[order.status]}
-                    </span>
-                  </td>
-                  <td style={styles.td}>{new Date(order.createdAt).toLocaleDateString("vi-VN")}</td>
-                </tr>
-              ))}
-            </tbody>
+           <thead>
+  <tr style={styles.thead}>
+    <th style={styles.th}>ID</th>
+    <th style={styles.th}>Khách hàng</th>
+    <th style={styles.th}>Địa chỉ</th>
+    <th style={styles.th}>Tổng tiền</th>
+    <th style={styles.th}>Trạng thái</th>
+    <th style={styles.th}>Ngày đặt</th>
+  </tr>
+</thead>
+           <tbody>
+  {recentOrders.map(order => (
+    <tr key={order._id} style={styles.tr}>
+      
+      {/* 👇 ID */}
+      <td style={styles.td}>
+        {order._id.slice(0, 6)}...
+      </td>
+
+      <td style={styles.td}>{order.user?.username || "—"}</td>
+      <td style={styles.td}>{order.shippingAddress}</td>
+      <td style={styles.td}>{order.totalPrice.toLocaleString("vi-VN")}₫</td>
+      <td style={styles.td}>
+        <span style={{ 
+          ...styles.badge, 
+          background: statusColor[order.status] + "22", 
+          color: statusColor[order.status] 
+        }}>
+          {statusLabel[order.status]}
+        </span>
+      </td>
+      <td style={styles.td}>
+        {new Date(order.createdAt).toLocaleDateString("vi-VN")}
+      </td>
+    </tr>
+  ))}
+</tbody>
           </table>
         </div>
       </div>
@@ -195,26 +208,62 @@ function Products() {
   }
 
   const handleSubmit = async () => {
-    if (!form.name || !form.price || !form.category) return alert("Vui lòng nhập đầy đủ thông tin bắt buộc")
-    setSaving(true)
-    const payload = {
-      ...form,
-      price: Number(form.price),
-      stock: Number(form.stock) || 0,
-      discount: Number(form.discount) || 0,
-      isHot: form.isHot,
-      sizes: form.sizes ? form.sizes.split(",").map(s => s.trim()).filter(Boolean) : [],
-      colors: form.colors ? form.colors.split(",").map(s => s.trim()).filter(Boolean) : [],
-    }
-    try {
-      if (editing) await API.put(`/products/${editing._id}`, payload)
-      else await API.post("/products", payload)
-      setShowModal(false)
-      fetchAll()
-    } catch (err) { console.error(err) }
-    finally { setSaving(false) }
+  if (!form.name || !form.price || !form.category) {
+    return alert("Vui lòng nhập đầy đủ thông tin bắt buộc")
   }
 
+  // ✅ check trùng ở frontend
+  const isDuplicate = products.some(
+    p =>
+      p.name.trim().toLowerCase() === form.name.trim().toLowerCase() &&
+      p.category?._id === form.category &&
+      (!editing || p._id !== editing._id) // tránh lỗi khi edit
+  )
+
+  if (isDuplicate) {
+    return alert("Sản phẩm đã tồn tại trong danh mục này")
+  }
+
+  setSaving(true)
+
+  const payload = {
+    ...form,
+    name: form.name.trim(),
+    price: Number(form.price),
+    stock: Number(form.stock) || 0,
+    discount: Number(form.discount) || 0,
+    isHot: form.isHot,
+    sizes: form.sizes
+      ? form.sizes.split(",").map(s => s.trim()).filter(Boolean)
+      : [],
+    colors: form.colors
+      ? form.colors.split(",").map(s => s.trim()).filter(Boolean)
+      : [],
+  }
+
+  try {
+    if (editing) {
+      await API.put(`/products/${editing._id}`, payload)
+    } else {
+      await API.post("/products", payload)
+    }
+
+    setShowModal(false)
+    fetchAll()
+
+  } catch (err) {
+    console.error(err)
+
+    // ✅ HIỂN THỊ LỖI
+    const message =
+      err.response?.data?.message ||
+      "Sản phẩm đã tồn tại hoặc có lỗi xảy ra"
+
+    alert(message)
+  } finally {
+    setSaving(false)
+  }
+}
   const handleDelete = async (id) => {
     if (!window.confirm("Xóa sản phẩm này?")) return
     try { await API.delete(`/products/${id}`); fetchAll() }
