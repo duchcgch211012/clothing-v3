@@ -1,66 +1,135 @@
-import Category from "../models/CategoryModels.js"
-import Product from "../models/ProductModels.js"
+import Category from "../models/CategoryModels.js";
+import Product from "../models/ProductModels.js";
 
-// CREATE
+/**
+ * CREATE CATEGORY
+ * @route   POST /api/categories
+ * @access  Private/Admin (tùy theo middleware của bạn)
+ */
 export const createCategory = async (req, res) => {
   try {
-    let { name } = req.body
+    let { name } = req.body;
 
-    name = name?.trim()
+    // Sanitize input
+    name = name?.trim();
 
-    // 🔥 Validate
+    // Validation
     if (!name) {
-      return res.status(400).json({ message: "Tên danh mục không được để trống" })
+      return res.status(400).json({ 
+        success: false,
+        message: "Category name is required" 
+      });
     }
 
     if (name.length < 2) {
-      return res.status(400).json({ message: "Tên danh mục phải >= 2 ký tự" })
+      return res.status(400).json({ 
+        success: false,
+        message: "Category name must be at least 2 characters long" 
+      });
     }
 
-    // 🔥 Check trùng
-    const existing = await Category.findOne({ name })
-    if (existing) {
-      return res.status(400).json({ message: "Danh mục đã tồn tại" })
+    if (name.length > 100) {
+      return res.status(400).json({ 
+        success: false,
+        message: "Category name must not exceed 100 characters" 
+      });
+    }
+
+    // Check for duplicate category (case insensitive)
+    const existingCategory = await Category.findOne({ 
+      name: { $regex: new RegExp(`^${name}$`, "i") } 
+    });
+
+    if (existingCategory) {
+      return res.status(400).json({ 
+        success: false,
+        message: "A category with this name already exists" 
+      });
     }
 
     const category = await Category.create({
       ...req.body,
-      name
-    })
+      name: name, // sanitized name
+    });
 
-    res.status(201).json(category)
+    res.status(201).json({
+      success: true,
+      message: "Category created successfully",
+      data: category,
+    });
   } catch (error) {
-    res.status(500).json({ message: error.message })
+    console.error("Create Category Error:", error);
+    res.status(500).json({ 
+      success: false,
+      message: "Server error while creating category",
+      error: error.message 
+    });
   }
-}
+};
 
+/**
+ * GET ALL CATEGORIES
+ * @route   GET /api/categories
+ * @access  Public
+ */
 export const getCategories = async (req, res) => {
-  const categories = await Category.find()
-  res.json(categories)
-}
+  try {
+    const categories = await Category.find().sort({ name: 1 }); // Sort alphabetically
+
+    res.status(200).json({
+      success: true,
+      count: categories.length,
+      data: categories,
+    });
+  } catch (error) {
+    console.error("Get Categories Error:", error);
+    res.status(500).json({ 
+      success: false,
+      message: "Server error while fetching categories" 
+    });
+  }
+};
+
+/**
+ * DELETE CATEGORY
+ * @route   DELETE /api/categories/:id
+ * @access  Private/Admin
+ */
 export const deleteCategory = async (req, res) => {
   try {
-    const categoryId = req.params.id
+    const categoryId = req.params.id;
 
-    // 🔥 Check tồn tại
-    const category = await Category.findById(categoryId)
+    // Check if category exists
+    const category = await Category.findById(categoryId);
     if (!category) {
-      return res.status(404).json({ message: "Không tìm thấy danh mục" })
+      return res.status(404).json({ 
+        success: false,
+        message: "Category not found" 
+      });
     }
 
-    // 🔥 Check có product không
-    const products = await Product.find({ category: categoryId })
+    // Check if category has any products
+    const productsCount = await Product.countDocuments({ category: categoryId });
 
-    if (products.length > 0) {
-      return res.status(400).json({
-        message: "Không thể xoá vì danh mục đang chứa sản phẩm"
-      })
+    if (productsCount > 0) {
+      return res.status(400).json({ 
+        success: false,
+        message: "Cannot delete category because it contains products. Please reassign or delete the products first.",
+        productsCount 
+      });
     }
 
-    await Category.findByIdAndDelete(categoryId)
+    await Category.findByIdAndDelete(categoryId);
 
-    res.json({ message: "Xoá danh mục thành công" })
+    res.status(200).json({
+      success: true,
+      message: "Category deleted successfully",
+    });
   } catch (error) {
-    res.status(500).json({ message: error.message })
+    console.error("Delete Category Error:", error);
+    res.status(500).json({ 
+      success: false,
+      message: "Server error while deleting category" 
+    });
   }
-}
+};

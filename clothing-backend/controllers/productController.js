@@ -1,135 +1,243 @@
-import Product from "../models/ProductModels.js"
-import Category from "../models/CategoryModels.js"
+import Product from "../models/ProductModels.js";
+import Category from "../models/CategoryModels.js";
 
-// CREATE PRODUCT
+/**
+ * CREATE PRODUCT
+ * @route   POST /api/products
+ * @access  Private/Admin
+ */
 export const createProduct = async (req, res) => {
   try {
-    let { name, price, category } = req.body
+    let { name, price, category } = req.body;
 
-    // 🔥 Trim dữ liệu
-    name = name?.trim()
+    // Sanitize
+    name = name?.trim();
 
-    // 🔥 Validate
+    // Validation
     if (!name) {
-      return res.status(400).json({ message: "Tên sản phẩm không được để trống" })
+      return res.status(400).json({
+        success: false,
+        message: "Product name is required",
+      });
     }
 
     if (!price || isNaN(price) || price <= 0) {
-      return res.status(400).json({ message: "Giá phải là số lớn hơn 0" })
+      return res.status(400).json({
+        success: false,
+        message: "Price must be a number greater than 0",
+      });
     }
 
     if (!category) {
-      return res.status(400).json({ message: "Vui lòng chọn danh mục" })
+      return res.status(400).json({
+        success: false,
+        message: "Category is required",
+      });
     }
 
-    // 🔥 Check category tồn tại
-    const categoryExists = await Category.findById(category)
+    // Check if category exists
+    const categoryExists = await Category.findById(category);
     if (!categoryExists) {
-      return res.status(400).json({ message: "Danh mục không tồn tại" })
+      return res.status(400).json({
+        success: false,
+        message: "Category does not exist",
+      });
     }
 
-    // 🔥 Check trùng tên
-    const existing = await Product.findOne({ name })
-    if (existing) {
-      return res.status(400).json({ message: "Sản phẩm đã tồn tại" })
+    // Check duplicate product name (case insensitive)
+    const existingProduct = await Product.findOne({
+      name: { $regex: new RegExp(`^${name}$`, "i") },
+    });
+
+    if (existingProduct) {
+      return res.status(400).json({
+        success: false,
+        message: "A product with this name already exists",
+      });
     }
 
     const product = await Product.create({
       ...req.body,
       name,
-      price: Number(price)
-    })
+      price: Number(price),
+    });
 
-    res.status(201).json(product)
+    res.status(201).json({
+      success: true,
+      message: "Product created successfully",
+      data: product,
+    });
   } catch (error) {
-    res.status(500).json({ message: error.message })
+    console.error("Create Product Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error while creating product",
+      error: error.message,
+    });
   }
-}
+};
 
-// GET ALL PRODUCTS
+/**
+ * GET ALL PRODUCTS
+ * @route   GET /api/products
+ * @access  Public
+ */
 export const getProducts = async (req, res) => {
   try {
-    const { hot } = req.query
+    const { hot } = req.query;
 
-    const filter = hot === "true" ? { isHot: true } : {}
+    const filter = hot === "true" ? { isHot: true } : {};
 
-    const products = await Product.find(filter).populate("category")
+    const products = await Product.find(filter)
+      .populate("category", "name") // Chỉ lấy trường name của category
+      .sort({ createdAt: -1 }); // Mới nhất lên đầu
 
-    res.json(products)
+    res.status(200).json({
+      success: true,
+      count: products.length,
+      data: products,
+    });
   } catch (error) {
-    res.status(500).json({ message: error.message })
+    console.error("Get Products Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error while fetching products",
+    });
   }
-}
+};
 
-// GET SINGLE PRODUCT
+/**
+ * GET SINGLE PRODUCT
+ * @route   GET /api/products/:id
+ * @access  Public
+ */
 export const getProduct = async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id).populate("category")
+    const product = await Product.findById(req.params.id).populate(
+      "category",
+      "name"
+    );
 
     if (!product) {
-      return res.status(404).json({ message: "Không tìm thấy sản phẩm" })
+      return res.status(404).json({
+        success: false,
+        message: "Product not found",
+      });
     }
 
-    res.json(product)
+    res.status(200).json({
+      success: true,
+      data: product,
+    });
   } catch (error) {
-    res.status(500).json({ message: error.message })
+    console.error("Get Product Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error while fetching product",
+    });
   }
-}
+};
 
-// UPDATE PRODUCT
+/**
+ * UPDATE PRODUCT
+ * @route   PUT /api/products/:id
+ * @access  Private/Admin
+ */
 export const updateProduct = async (req, res) => {
   try {
-    let { name, price, category } = req.body
+    let { name, price, category } = req.body;
 
-    // 🔥 Validate nếu có truyền lên
-    if (name && !name.trim()) {
-      return res.status(400).json({ message: "Tên sản phẩm không hợp lệ" })
-    }
-
-    if (price && (isNaN(price) || price <= 0)) {
-      return res.status(400).json({ message: "Giá không hợp lệ" })
-    }
-
-    if (category) {
-      const categoryExists = await Category.findById(category)
-      if (!categoryExists) {
-        return res.status(400).json({ message: "Danh mục không tồn tại" })
+    // Validate nếu có truyền lên
+    if (name !== undefined) {
+      name = name.trim();
+      if (!name) {
+        return res.status(400).json({
+          success: false,
+          message: "Product name cannot be empty",
+        });
       }
     }
 
+    if (price !== undefined) {
+      if (isNaN(price) || price <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: "Price must be a number greater than 0",
+        });
+      }
+    }
+
+    if (category) {
+      const categoryExists = await Category.findById(category);
+      if (!categoryExists) {
+        return res.status(400).json({
+          success: false,
+          message: "Category does not exist",
+        });
+      }
+    }
+
+    const updateData = {
+      ...req.body,
+      name: name || undefined,
+      price: price ? Number(price) : undefined,
+    };
+
     const product = await Product.findByIdAndUpdate(
       req.params.id,
-      {
-        ...req.body,
-        name: name?.trim(),
-        price: price ? Number(price) : undefined
-      },
-      { new: true }
-    )
+      updateData,
+      { new: true, runValidators: true }
+    ).populate("category", "name");
 
     if (!product) {
-      return res.status(404).json({ message: "Không tìm thấy sản phẩm" })
+      return res.status(404).json({
+        success: false,
+        message: "Product not found",
+      });
     }
 
-    res.json(product)
+    res.status(200).json({
+      success: true,
+      message: "Product updated successfully",
+      data: product,
+    });
   } catch (error) {
-    res.status(500).json({ message: error.message })
+    console.error("Update Product Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error while updating product",
+      error: error.message,
+    });
   }
-}
+};
 
-// DELETE PRODUCT
+/**
+ * DELETE PRODUCT
+ * @route   DELETE /api/products/:id
+ * @access  Private/Admin
+ */
 export const deleteProduct = async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id)
+    const product = await Product.findById(req.params.id);
 
     if (!product) {
-      return res.status(404).json({ message: "Không tìm thấy sản phẩm" })
+      return res.status(404).json({
+        success: false,
+        message: "Product not found",
+      });
     }
 
-    await Product.findByIdAndDelete(req.params.id)
+    await Product.findByIdAndDelete(req.params.id);
 
-    res.json({ message: "Xoá sản phẩm thành công" })
+    res.status(200).json({
+      success: true,
+      message: "Product deleted successfully",
+    });
   } catch (error) {
-    res.status(500).json({ message: error.message })
+    console.error("Delete Product Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error while deleting product",
+    });
   }
-}
+};
