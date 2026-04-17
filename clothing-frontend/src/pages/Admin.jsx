@@ -14,7 +14,6 @@ export default function Admin() {
 
   return (
     <div style={styles.page}>
-  
       <aside style={styles.sidebar}>
         <div style={styles.sidebarLogo}>👕 FPTShop</div>
         <p style={styles.sidebarRole}>Admin Shop</p>
@@ -22,9 +21,9 @@ export default function Admin() {
         <nav style={styles.nav}>
           {[
             { key: "dashboard",  icon: "📊", label: "Dashboard" },
-            { key: "products",   icon: "👕", label: "Sản phẩm" },
-            { key: "categories", icon: "🏷️", label: "Danh mục" },
-            { key: "orders",     icon: "📦", label: "Đơn hàng" },
+            { key: "products",   icon: "👕", label: "Products" },
+            { key: "categories", icon: "🏷️", label: "Categories" },
+            { key: "orders",     icon: "📦", label: "Orders" },
           ].map(item => (
             <button
               key={item.key}
@@ -45,10 +44,9 @@ export default function Admin() {
               <p style={styles.userRole}>Administrator</p>
             </div>
           </div>
-          <button onClick={handleLogout} style={styles.logoutBtn}>Đăng xuất</button>
+          <button onClick={handleLogout} style={styles.logoutBtn}>Logout</button>
         </div>
       </aside>
-
 
       <main style={styles.main}>
         {tab === "dashboard"  && <Dashboard />}
@@ -67,7 +65,7 @@ function Dashboard() {
   const [loading, setLoading] = useState(true)
 
   const statusColor = { pending: "#f59e0b", processing: "#3b82f6", shipped: "#8b5cf6", delivered: "#10b981", cancelled: "#ef4444" }
-  const statusLabel = { pending: "Chờ xử lý", processing: "Đang xử lý", shipped: "Đang giao", delivered: "Đã giao", cancelled: "Đã hủy" }
+  const statusLabel = { pending: "Pending", processing: "Processing", shipped: "Shipped", delivered: "Delivered", cancelled: "Cancelled" }
 
   useEffect(() => {
     const fetchAll = async () => {
@@ -95,13 +93,12 @@ function Dashboard() {
     <div>
       <h1 style={styles.pageTitle}>Dashboard</h1>
 
-
       <div style={styles.statGrid}>
         {[
-          { label: "Sản phẩm",  value: stats.products,                                  icon: "👕", color: "#e6f1fb" },
-          { label: "Danh mục",  value: stats.categories,                                icon: "🏷️", color: "#f0fdf4" },
-          { label: "Đơn hàng",  value: stats.orders,                                    icon: "📦", color: "#fff7ed" },
-          { label: "Doanh thu", value: stats.revenue.toLocaleString("vi-VN") + "₫",    icon: "💰", color: "#fdf4ff" },
+          { label: "Products",   value: stats.products,                                  icon: "👕", color: "#e6f1fb" },
+          { label: "Categories", value: stats.categories,                                icon: "🏷️", color: "#f0fdf4" },
+          { label: "Orders",     value: stats.orders,                                    icon: "📦", color: "#fff7ed" },
+          { label: "Revenue",    value: stats.revenue.toLocaleString("vi-VN") + "₫",    icon: "💰", color: "#fdf4ff" },
         ].map(card => (
           <div key={card.label} style={styles.statCard}>
             <div style={{ ...styles.statIcon, background: card.color }}>
@@ -115,48 +112,42 @@ function Dashboard() {
         ))}
       </div>
 
-   
       <div style={styles.section}>
-        <h2 style={styles.sectionTitle}>Đơn hàng gần đây</h2>
+        <h2 style={styles.sectionTitle}>Recent Orders</h2>
         <div style={styles.tableWrap}>
           <table style={styles.table}>
-           <thead>
-  <tr style={styles.thead}>
-    <th style={styles.th}>ID</th>
-    <th style={styles.th}>Khách hàng</th>
-    <th style={styles.th}>Địa chỉ</th>
-    <th style={styles.th}>Tổng tiền</th>
-    <th style={styles.th}>Trạng thái</th>
-    <th style={styles.th}>Ngày đặt</th>
-  </tr>
-</thead>
-           <tbody>
-  {recentOrders.map(order => (
-    <tr key={order._id} style={styles.tr}>
-      
-      {/* 👇 ID */}
-      <td style={styles.td}>
-        {order._id.slice(0, 6)}...
-      </td>
-
-      <td style={styles.td}>{order.user?.username || "—"}</td>
-      <td style={styles.td}>{order.shippingAddress}</td>
-      <td style={styles.td}>{order.totalPrice.toLocaleString("vi-VN")}₫</td>
-      <td style={styles.td}>
-        <span style={{ 
-          ...styles.badge, 
-          background: statusColor[order.status] + "22", 
-          color: statusColor[order.status] 
-        }}>
-          {statusLabel[order.status]}
-        </span>
-      </td>
-      <td style={styles.td}>
-        {new Date(order.createdAt).toLocaleDateString("vi-VN")}
-      </td>
-    </tr>
-  ))}
-</tbody>
+            <thead>
+              <tr style={styles.thead}>
+                <th style={styles.th}>ID</th>
+                <th style={styles.th}>Customer</th>
+                <th style={styles.th}>Address</th>
+                <th style={styles.th}>Total</th>
+                <th style={styles.th}>Status</th>
+                <th style={styles.th}>Order Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              {recentOrders.map(order => (
+                <tr key={order._id} style={styles.tr}>
+                  <td style={styles.td}>{order._id.slice(0, 6)}...</td>
+                  <td style={styles.td}>{order.user?.username || "—"}</td>
+                  <td style={styles.td}>{order.shippingAddress}</td>
+                  <td style={styles.td}>{order.totalPrice.toLocaleString("vi-VN")}₫</td>
+                  <td style={styles.td}>
+                    <span style={{
+                      ...styles.badge,
+                      background: statusColor[order.status] + "22",
+                      color: statusColor[order.status]
+                    }}>
+                      {statusLabel[order.status]}
+                    </span>
+                  </td>
+                  <td style={styles.td}>
+                    {new Date(order.createdAt).toLocaleDateString("vi-VN")}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
           </table>
         </div>
       </div>
@@ -208,64 +199,61 @@ function Products() {
   }
 
   const handleSubmit = async () => {
-  if (!form.name || !form.price || !form.category) {
-    return alert("Vui lòng nhập đầy đủ thông tin bắt buộc")
-  }
-
-  // ✅ check trùng ở frontend
-  const isDuplicate = products.some(
-    p =>
-      p.name.trim().toLowerCase() === form.name.trim().toLowerCase() &&
-      p.category?._id === form.category &&
-      (!editing || p._id !== editing._id) // tránh lỗi khi edit
-  )
-
-  if (isDuplicate) {
-    return alert("Sản phẩm đã tồn tại trong danh mục này")
-  }
-
-  setSaving(true)
-
-  const payload = {
-    ...form,
-    name: form.name.trim(),
-    price: Number(form.price),
-    stock: Number(form.stock) || 0,
-    discount: Number(form.discount) || 0,
-    isHot: form.isHot,
-    sizes: form.sizes
-      ? form.sizes.split(",").map(s => s.trim()).filter(Boolean)
-      : [],
-    colors: form.colors
-      ? form.colors.split(",").map(s => s.trim()).filter(Boolean)
-      : [],
-  }
-
-  try {
-    if (editing) {
-      await API.put(`/products/${editing._id}`, payload)
-    } else {
-      await API.post("/products", payload)
+    if (!form.name || !form.price || !form.category) {
+      return alert("Please fill in all required fields")
     }
 
-    setShowModal(false)
-    fetchAll()
+    const isDuplicate = products.some(
+      p =>
+        p.name.trim().toLowerCase() === form.name.trim().toLowerCase() &&
+        p.category?._id === form.category &&
+        (!editing || p._id !== editing._id)
+    )
 
-  } catch (err) {
-    console.error(err)
+    if (isDuplicate) {
+      return alert("A product with this name already exists in this category")
+    }
 
-    // ✅ HIỂN THỊ LỖI
-    const message =
-      err.response?.data?.message ||
-      "Sản phẩm đã tồn tại hoặc có lỗi xảy ra"
+    setSaving(true)
 
-    alert(message)
-  } finally {
-    setSaving(false)
+    const payload = {
+      ...form,
+      name: form.name.trim(),
+      price: Number(form.price),
+      stock: Number(form.stock) || 0,
+      discount: Number(form.discount) || 0,
+      isHot: form.isHot,
+      sizes: form.sizes
+        ? form.sizes.split(",").map(s => s.trim()).filter(Boolean)
+        : [],
+      colors: form.colors
+        ? form.colors.split(",").map(s => s.trim()).filter(Boolean)
+        : [],
+    }
+
+    try {
+      if (editing) {
+        await API.put(`/products/${editing._id}`, payload)
+      } else {
+        await API.post("/products", payload)
+      }
+
+      setShowModal(false)
+      fetchAll()
+
+    } catch (err) {
+      console.error(err)
+      const message =
+        err.response?.data?.message ||
+        "Product already exists or an error occurred"
+      alert(message)
+    } finally {
+      setSaving(false)
+    }
   }
-}
+
   const handleDelete = async (id) => {
-    if (!window.confirm("Xóa sản phẩm này?")) return
+    if (!window.confirm("Delete this product?")) return
     try { await API.delete(`/products/${id}`); fetchAll() }
     catch (err) { console.error(err) }
   }
@@ -275,23 +263,23 @@ function Products() {
   return (
     <div>
       <div style={styles.pageHeader}>
-        <h1 style={styles.pageTitle}>Sản phẩm</h1>
-        <button onClick={openCreate} style={styles.primaryBtn}>+ Thêm sản phẩm</button>
+        <h1 style={styles.pageTitle}>Products</h1>
+        <button onClick={openCreate} style={styles.primaryBtn}>+ Add Product</button>
       </div>
 
       <div style={styles.tableWrap}>
         <table style={styles.table}>
           <thead>
             <tr style={styles.thead}>
-              <th style={styles.th}>Ảnh</th>
-              <th style={styles.th}>Tên sản phẩm</th>
-              <th style={styles.th}>Danh mục</th>
-              <th style={styles.th}>Giá</th>
-              <th style={styles.th}>Giảm giá</th>
-              <th style={styles.th}>Tồn kho</th>
-              <th style={styles.th}>Đã bán</th>
+              <th style={styles.th}>Image</th>
+              <th style={styles.th}>Product Name</th>
+              <th style={styles.th}>Category</th>
+              <th style={styles.th}>Price</th>
+              <th style={styles.th}>Discount</th>
+              <th style={styles.th}>Stock</th>
+              <th style={styles.th}>Sold</th>
               <th style={styles.th}>Hot</th>
-              <th style={styles.th}>Thao tác</th>
+              <th style={styles.th}>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -338,8 +326,8 @@ function Products() {
                 </td>
                 <td style={styles.td}>
                   <div style={{ display: "flex", gap: "8px" }}>
-                    <button onClick={() => openEdit(p)} style={styles.editBtn}>Sửa</button>
-                    <button onClick={() => handleDelete(p._id)} style={styles.deleteBtn}>Xóa</button>
+                    <button onClick={() => openEdit(p)} style={styles.editBtn}>Edit</button>
+                    <button onClick={() => handleDelete(p._id)} style={styles.deleteBtn}>Delete</button>
                   </div>
                 </td>
               </tr>
@@ -351,20 +339,19 @@ function Products() {
       {showModal && (
         <div style={styles.overlay}>
           <div style={styles.modal}>
-            <h2 style={styles.modalTitle}>{editing ? "Sửa sản phẩm" : "Thêm sản phẩm"}</h2>
+            <h2 style={styles.modalTitle}>{editing ? "Edit Product" : "Add Product"}</h2>
             <div style={styles.formGrid}>
-              <FormField label="Tên sản phẩm *" value={form.name} onChange={v => setForm({ ...form, name: v })} placeholder="Áo thun nam..." />
-              <FormField label="Giá (₫) *" type="number" value={form.price} onChange={v => setForm({ ...form, price: v })} placeholder="150000" />
-              <FormSelect label="Danh mục *" value={form.category} onChange={v => setForm({ ...form, category: v })} options={categories.map(c => ({ value: c._id, label: c.name }))} />
-              <FormField label="Tồn kho" type="number" value={form.stock} onChange={v => setForm({ ...form, stock: v })} placeholder="100" />
-              <FormField label="URL ảnh" value={form.image} onChange={v => setForm({ ...form, image: v })} placeholder="https://..." />
-              <FormField label="Sizes (cách nhau bởi dấu phẩy)" value={form.sizes} onChange={v => setForm({ ...form, sizes: v })} placeholder="S, M, L, XL" />
-              <FormField label="Màu sắc (cách nhau bởi dấu phẩy)" value={form.colors} onChange={v => setForm({ ...form, colors: v })} placeholder="Đỏ, Xanh, Trắng" />
-              <FormField label="Giảm giá (%)" type="number" value={form.discount} onChange={v => setForm({ ...form, discount: v })} placeholder="0 - 100" />
+              <FormField label="Product Name *" value={form.name} onChange={v => setForm({ ...form, name: v })} placeholder="Men's T-shirt..." />
+              <FormField label="Price (₫) *" type="number" value={form.price} onChange={v => setForm({ ...form, price: v })} placeholder="150000" />
+              <FormSelect label="Category *" value={form.category} onChange={v => setForm({ ...form, category: v })} options={categories.map(c => ({ value: c._id, label: c.name }))} />
+              <FormField label="Stock" type="number" value={form.stock} onChange={v => setForm({ ...form, stock: v })} placeholder="100" />
+              <FormField label="Image URL" value={form.image} onChange={v => setForm({ ...form, image: v })} placeholder="https://..." />
+              <FormField label="Sizes (comma separated)" value={form.sizes} onChange={v => setForm({ ...form, sizes: v })} placeholder="S, M, L, XL" />
+              <FormField label="Colors (comma separated)" value={form.colors} onChange={v => setForm({ ...form, colors: v })} placeholder="Red, Blue, White" />
+              <FormField label="Discount (%)" type="number" value={form.discount} onChange={v => setForm({ ...form, discount: v })} placeholder="0 - 100" />
 
-    
               <div style={{ display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
-                <label style={styles.label}>Sản phẩm hot</label>
+                <label style={styles.label}>Hot Product</label>
                 <div style={{ display: "flex", alignItems: "center", gap: "10px", height: "40px" }}>
                   <input
                     type="checkbox"
@@ -374,28 +361,27 @@ function Products() {
                     style={{ width: "18px", height: "18px", cursor: "pointer" }}
                   />
                   <label htmlFor="isHot" style={{ fontSize: "14px", cursor: "pointer", color: "#374151" }}>
-                    🔥 Đánh dấu là hot
+                    🔥 Mark as hot
                   </label>
                 </div>
               </div>
             </div>
 
-    
             <div style={{ marginTop: "1rem" }}>
-              <label style={styles.label}>Mô tả</label>
+              <label style={styles.label}>Description</label>
               <textarea
                 value={form.description}
                 onChange={e => setForm({ ...form, description: e.target.value })}
                 rows={3}
-                placeholder="Mô tả sản phẩm..."
+                placeholder="Product description..."
                 style={{ ...styles.input, resize: "vertical" }}
               />
             </div>
 
             <div style={styles.modalFooter}>
-              <button onClick={() => setShowModal(false)} style={styles.cancelBtn}>Hủy</button>
+              <button onClick={() => setShowModal(false)} style={styles.cancelBtn}>Cancel</button>
               <button onClick={handleSubmit} disabled={saving} style={{ ...styles.primaryBtn, opacity: saving ? 0.7 : 1 }}>
-                {saving ? "Đang lưu..." : "Lưu"}
+                {saving ? "Saving..." : "Save"}
               </button>
             </div>
           </div>

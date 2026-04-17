@@ -5,7 +5,7 @@ import API from "../services/api"
 export default function Cart() {
   const navigate = useNavigate()
   const [cart, setCart] = useState([])
-  const [step, setStep] = useState("cart") 
+  const [step, setStep] = useState("cart")
   const [form, setForm] = useState({ shippingAddress: "", phone: "" })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
@@ -38,8 +38,8 @@ export default function Cart() {
 
   const handleOrder = async () => {
     setError("")
-    if (!form.shippingAddress.trim()) { setError("Vui lòng nhập địa chỉ giao hàng"); return }
-    if (!form.phone.trim()) { setError("Vui lòng nhập số điện thoại"); return }
+    if (!form.shippingAddress.trim()) { setError("Please enter a shipping address"); return }
+    if (!form.phone.trim()) { setError("Please enter a phone number"); return }
 
     setLoading(true)
     try {
@@ -61,21 +61,20 @@ export default function Cart() {
       setCart([])
       setStep("success")
     } catch (err) {
-      setError("Đặt hàng thất bại, vui lòng thử lại")
+      setError("Order failed, please try again")
       console.error(err)
     } finally {
       setLoading(false)
     }
   }
 
-
   if (step === "success") return (
     <div style={styles.page}>
       <div style={styles.successWrap}>
         <div style={styles.successIcon}>✓</div>
-        <h2 style={styles.successTitle}>Đặt hàng thành công!</h2>
-        <p style={styles.successSub}>Cảm ơn bạn đã mua hàng. Chúng tôi sẽ xử lý đơn hàng sớm nhất.</p>
-        <button onClick={() => navigate("/home")} style={styles.primaryBtn}>Tiếp tục mua sắm</button>
+        <h2 style={styles.successTitle}>Order Placed Successfully!</h2>
+        <p style={styles.successSub}>Thank you for your purchase. We will process your order as soon as possible.</p>
+        <button onClick={() => navigate("/home")} style={styles.primaryBtn}>Continue Shopping</button>
       </div>
     </div>
   )
@@ -89,10 +88,10 @@ export default function Cart() {
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M19 12H5M12 5l-7 7 7 7"/>
             </svg>
-            Tiếp tục mua sắm
+            Continue Shopping
           </button>
           <span style={styles.logo}>👕 FPTShop</span>
-          <span style={styles.cartTitle}>Giỏ hàng ({totalItems})</span>
+          <span style={styles.cartTitle}>Cart ({totalItems})</span>
         </div>
       </nav>
 
@@ -103,8 +102,8 @@ export default function Cart() {
               <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
               <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
             </svg>
-            <p style={styles.emptyText}>Giỏ hàng của bạn đang trống</p>
-            <button onClick={() => navigate("/home")} style={styles.primaryBtn}>Khám phá sản phẩm</button>
+            <p style={styles.emptyText}>Your cart is empty</p>
+            <button onClick={() => navigate("/home")} style={styles.primaryBtn}>Explore Products</button>
           </div>
         ) : (
           <div style={styles.layout}>
@@ -112,7 +111,7 @@ export default function Cart() {
             <div style={styles.leftCol}>
               {step === "cart" ? (
                 <>
-                  <h2 style={styles.sectionTitle}>Sản phẩm trong giỏ</h2>
+                  <h2 style={styles.sectionTitle}>Cart Items</h2>
                   <div style={styles.cartList}>
                     {cart.map(item => (
                       <div key={item.cartKey} style={styles.cartItem}>
@@ -126,7 +125,7 @@ export default function Cart() {
                           <p style={styles.itemName}>{item.name}</p>
                           <div style={styles.itemMeta}>
                             {item.selectedSize && <span style={styles.metaTag}>Size: {item.selectedSize}</span>}
-                            {item.selectedColor && <span style={styles.metaTag}>Màu: {item.selectedColor}</span>}
+                            {item.selectedColor && <span style={styles.metaTag}>Color: {item.selectedColor}</span>}
                           </div>
                           <p style={styles.itemPrice}>{item.price.toLocaleString("vi-VN")}₫</p>
                         </div>
@@ -137,7 +136,7 @@ export default function Cart() {
                             <button onClick={() => updateQty(item.cartKey, 1)} style={styles.qtyBtn}>+</button>
                           </div>
                           <p style={styles.itemTotal}>{(item.price * item.qty).toLocaleString("vi-VN")}₫</p>
-                          <button onClick={() => removeItem(item.cartKey)} style={styles.removeBtn}>Xóa</button>
+                          <button onClick={() => removeItem(item.cartKey)} style={styles.removeBtn}>Remove</button>
                         </div>
                       </div>
                     ))}
@@ -145,10 +144,10 @@ export default function Cart() {
                 </>
               ) : (
                 <>
-                  <h2 style={styles.sectionTitle}>Thông tin giao hàng</h2>
+                  <h2 style={styles.sectionTitle}>Shipping Information</h2>
                   <div style={styles.checkoutForm}>
                     <div style={styles.formField}>
-                      <label style={styles.label}>Số điện thoại *</label>
+                      <label style={styles.label}>Phone Number *</label>
                       <input
                         type="tel"
                         placeholder="0912 345 678"
@@ -158,9 +157,9 @@ export default function Cart() {
                       />
                     </div>
                     <div style={styles.formField}>
-                      <label style={styles.label}>Địa chỉ giao hàng *</label>
+                      <label style={styles.label}>Shipping Address *</label>
                       <textarea
-                        placeholder="Số nhà, tên đường, phường/xã, quận/huyện, tỉnh/thành phố"
+                        placeholder="House number, street, ward, district, city/province"
                         value={form.shippingAddress}
                         onChange={e => { setForm({ ...form, shippingAddress: e.target.value }); setError("") }}
                         rows={3}
@@ -176,15 +175,14 @@ export default function Cart() {
                       </div>
                     )}
                   </div>
-                  <button onClick={() => setStep("cart")} style={styles.backLinkBtn}>← Quay lại giỏ hàng</button>
+                  <button onClick={() => setStep("cart")} style={styles.backLinkBtn}>← Back to Cart</button>
                 </>
               )}
             </div>
 
-  
             <div style={styles.rightCol}>
               <div style={styles.summaryCard}>
-                <h2 style={styles.sectionTitle}>Tóm tắt đơn hàng</h2>
+                <h2 style={styles.sectionTitle}>Order Summary</h2>
 
                 {cart.map(item => (
                   <div key={item.cartKey} style={styles.summaryItem}>
@@ -196,24 +194,24 @@ export default function Cart() {
                 <div style={styles.summaryDivider} />
 
                 <div style={styles.summaryRow}>
-                  <span style={{ color: "#6b7280" }}>Tạm tính</span>
+                  <span style={{ color: "#6b7280" }}>Subtotal</span>
                   <span>{total.toLocaleString("vi-VN")}₫</span>
                 </div>
                 <div style={styles.summaryRow}>
-                  <span style={{ color: "#6b7280" }}>Phí vận chuyển</span>
-                  <span style={{ color: "#10b981", fontWeight: 500 }}>Miễn phí</span>
+                  <span style={{ color: "#6b7280" }}>Shipping</span>
+                  <span style={{ color: "#10b981", fontWeight: 500 }}>Free</span>
                 </div>
 
                 <div style={styles.summaryDivider} />
 
                 <div style={{ ...styles.summaryRow, fontSize: "17px" }}>
-                  <span style={{ fontWeight: 700 }}>Tổng cộng</span>
+                  <span style={{ fontWeight: 700 }}>Total</span>
                   <span style={{ fontWeight: 700 }}>{total.toLocaleString("vi-VN")}₫</span>
                 </div>
 
                 {step === "cart" ? (
                   <button onClick={() => setStep("checkout")} style={{ ...styles.primaryBtn, width: "100%", marginTop: "1.25rem" }}>
-                    Tiến hành đặt hàng →
+                    Proceed to Checkout →
                   </button>
                 ) : (
                   <button
@@ -221,7 +219,7 @@ export default function Cart() {
                     disabled={loading}
                     style={{ ...styles.primaryBtn, width: "100%", marginTop: "1.25rem", opacity: loading ? 0.7 : 1, cursor: loading ? "not-allowed" : "pointer" }}
                   >
-                    {loading ? "Đang xử lý..." : "Xác nhận đặt hàng"}
+                    {loading ? "Processing..." : "Confirm Order"}
                   </button>
                 )}
               </div>

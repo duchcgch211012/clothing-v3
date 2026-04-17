@@ -75,14 +75,14 @@ export default function Home() {
           <div style={styles.navCenter}>
             <input
               type="text"
-              placeholder="Tìm kiếm sản phẩm..."
+              placeholder="Search products..."
               value={search}
               onChange={e => setSearch(e.target.value)}
               style={styles.searchInput}
             />
           </div>
           <div style={styles.navRight}>
-            <span style={styles.navUser}>Xin chào, {user?.username}</span>
+            <span style={styles.navUser}>Hello, {user?.username}</span>
             <button onClick={() => navigate("/cart")} style={styles.cartBtn}>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
@@ -90,7 +90,7 @@ export default function Home() {
               </svg>
               {cartCount > 0 && <span style={styles.cartBadge}>{cartCount}</span>}
             </button>
-            <button onClick={handleLogout} style={styles.logoutBtn}>Đăng xuất</button>
+            <button onClick={handleLogout} style={styles.logoutBtn}>Logout</button>
           </div>
         </div>
       </nav>
@@ -102,7 +102,7 @@ export default function Home() {
             onClick={() => setSelectedCategory("all")}
             style={{ ...styles.catBtn, ...(selectedCategory === "all" ? styles.catBtnActive : {}) }}
           >
-            Tất cả
+            All
           </button>
           {categories.map(cat => (
             <button
@@ -115,12 +115,11 @@ export default function Home() {
           ))}
         </div>
 
-    
         {!loading && hotProducts.length > 0 && (
           <div style={{ marginBottom: "2.5rem" }}>
             <div style={styles.sectionHeader}>
-              <h2 style={styles.sectionTitle}>🔥 Sản phẩm hot</h2>
-              <span style={styles.sectionSub}>Đang được mua nhiều nhất</span>
+              <h2 style={styles.sectionTitle}>🔥 Hot Products</h2>
+              <span style={styles.sectionSub}>Best sellers right now</span>
             </div>
             <div style={styles.grid}>
               {hotProducts.map(product => (
@@ -136,27 +135,25 @@ export default function Home() {
           </div>
         )}
 
-
         {!loading && hotProducts.length > 0 && (
           <div style={styles.divider}>
             <div style={styles.dividerLine} />
-            <span style={styles.dividerText}>Tất cả sản phẩm</span>
+            <span style={styles.dividerText}>All Products</span>
             <div style={styles.dividerLine} />
           </div>
         )}
 
-
         {loading ? (
           <div style={styles.center}>
             <div style={styles.spinner} />
-            <p style={{ color: "#6b7280", marginTop: "1rem" }}>Đang tải sản phẩm...</p>
+            <p style={{ color: "#6b7280", marginTop: "1rem" }}>Loading products...</p>
           </div>
         ) : filtered.length === 0 ? (
           <div style={styles.center}>
             <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" strokeWidth="1.5">
               <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
             </svg>
-            <p style={{ color: "#6b7280", marginTop: "1rem" }}>Không tìm thấy sản phẩm nào</p>
+            <p style={{ color: "#6b7280", marginTop: "1rem" }}>No products found</p>
           </div>
         ) : (
           <div style={styles.grid}>
@@ -203,10 +200,9 @@ function ProductCard({ product, navigate, addToCart, isHot = false }) {
         </div>
 
         {product.stock === 0 && (
-          <div style={styles.outOfStock}>Hết hàng</div>
+          <div style={styles.outOfStock}>Out of Stock</div>
         )}
       </div>
-
 
       <div style={styles.cardBody}>
         <p style={styles.cardCategory}>{product.category?.name}</p>
@@ -217,13 +213,12 @@ function ProductCard({ product, navigate, addToCart, isHot = false }) {
           {product.name}
         </h3>
 
-   
         {product.rating > 0 && (
           <div style={styles.ratingRow}>
             {[1,2,3,4,5].map(s => (
               <span key={s} style={{ color: s <= Math.round(product.rating) ? "#f59e0b" : "#e5e7eb", fontSize: "13px" }}>★</span>
             ))}
-            <span style={{ fontSize: "12px", color: "#9ca3af", marginLeft: "4px" }}>({product.sold} đã bán)</span>
+            <span style={{ fontSize: "12px", color: "#9ca3af", marginLeft: "4px" }}>({product.sold} sold)</span>
           </div>
         )}
 
@@ -238,7 +233,7 @@ function ProductCard({ product, navigate, addToCart, isHot = false }) {
               cursor: product.stock === 0 ? "not-allowed" : "pointer",
             }}
           >
-            + Thêm
+            + Add
           </button>
         </div>
       </div>
