@@ -2,12 +2,40 @@ import User from "../models/UserModels.js"
 import bcrypt from "bcryptjs"
 import jwt from "jsonwebtoken"
 
+const publicUser = (user) => ({
+  _id: user._id,
+  username: user.username,
+  email: user.email,
+  role: user.role,
+  avatar: user.avatar,
+  phone: user.phone,
+  address: user.address,
+})
+
+const signToken = (user) => {
+  if (!process.env.JWT_SECRET) {
+    throw new Error("Missing JWT_SECRET environment variable")
+  }
+
+  return jwt.sign(
+    { id: user._id, role: user.role },
+    process.env.JWT_SECRET,
+    { expiresIn: process.env.JWT_EXPIRES_IN || "7d" }
+  )
+}
+
 export const register = async (req, res) => {
   try {
-    const { username, email, password } = req.body
+    const username = req.body.username?.trim()
+    const email = req.body.email?.trim().toLowerCase()
+    const { password } = req.body
 
     if (!username || !email || !password) {
       return res.status(400).json("Missing fields")
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({ success: false, message: "Password must be at least 6 characters" })
     }
 
     const existing = await User.findOne({ email })
@@ -20,20 +48,24 @@ export const register = async (req, res) => {
     const user = await User.create({
       username,
       email,
-      password: hashed
+      password: hashed,
     })
 
-    res.json(user)
-
+    res.status(201).json({
+      success: true,
+      message: "Registered successfully",
+      data: publicUser(user),
+    })
   } catch (error) {
-    res.status(500).json(error.message)
+    console.error("Register error:", error)
+    res.status(500).json({ success: false, message: "Server error while registering" })
   }
 }
 
-
 export const login = async (req, res) => {
   try {
-    const { email, password } = req.body
+    const email = req.body.email?.trim().toLowerCase()
+    const { password } = req.body
 
     if (!email || !password) {
       return res.status(400).json("Missing fields")
@@ -45,15 +77,14 @@ export const login = async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password)
     if (!isMatch) return res.status(400).json("Wrong password")
 
-    const token = jwt.sign(
-      { id: user._id, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" }
-    )
+    const token = signToken(user)
 
-    res.json({ token, user })
-
+    res.json({
+      token,
+      user: publicUser(user),
+    })
   } catch (error) {
-    res.status(500).json(error.message)
+    console.error("Login error:", error)
+    res.status(500).json({ success: false, message: "Server error while logging in" })
   }
 }

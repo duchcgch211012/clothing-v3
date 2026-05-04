@@ -14,42 +14,82 @@ import orderRoutes from "./routes/orderRoutes.js"
 dotenv.config()
 
 const app = express()
+const PORT = process.env.PORT || 5001
+const MONGO_URI = process.env.MONGO_URI
 
-app.use(cors())
-app.use(express.json())
+const allowedOrigins = (process.env.CORS_ORIGIN || "*")
+  .split(",")
+  .map(origin => origin.trim())
+  .filter(Boolean)
 
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes("*") || allowedOrigins.includes(origin)) {
+      return callback(null, true)
+    }
+    return callback(new Error(`CORS blocked origin: ${origin}`))
+  },
+  credentials: true,
+}))
+app.use(express.json({ limit: "2mb" }))
 
 app.get("/", (req, res) => {
-    res.send("API running...")
+  res.json({
+    success: true,
+    message: "Clothing Store API is running",
+    version: "1.0.0",
+  })
+})
+
+app.get("/health", (req, res) => {
+  const mongoState = mongoose.connection.readyState
+  res.status(mongoState === 1 ? 200 : 503).json({
+    success: mongoState === 1,
+    service: "clothing-backend",
+    database: mongoState === 1 ? "connected" : "not_connected",
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString(),
+  })
 })
 
 app.get("/api/test", protect, (req, res) => {
-    res.json({ message: "Protected route", user: req.user })
+  res.json({ success: true, message: "Protected route", user: req.user })
 })
 
 app.get("/api/admin", protect, isAdmin, (req, res) => {
-    res.json("Welcome admin")
+  res.json({ success: true, message: "Welcome admin" })
 })
-
 
 app.use("/api/auth", authRoutes)
 app.use("/api/products", productRoutes)
 app.use("/api/categories", categoryRoutes)
 app.use("/api/orders", orderRoutes)
 
-
-app.use((err, req, res, next) => {
-    res.status(500).json({ message: err.message })
+app.use((req, res) => {
+  res.status(404).json({ success: false, message: `Route not found: ${req.originalUrl}` })
 })
 
+app.use((err, req, res, next) => {
+  console.error("Unhandled error:", err)
+  res.status(err.status || 500).json({
+    success: false,
+    message: process.env.NODE_ENV === "production" ? "Internal server error" : err.message,
+  })
+})
 
-const PORT = process.env.PORT || 5001
+if (!MONGO_URI) {
+  console.error("Missing MONGO_URI environment variable")
+  process.exit(1)
+}
 
-mongoose.connect(process.env.MONGO_URI)
-    .then(() => {
-        console.log("MongoDB connected")
-        app.listen(PORT, () => {
-            console.log(`Server running on port ${PORT}`)
-        })
+mongoose.connect(MONGO_URI)
+  .then(() => {
+    console.log("MongoDB connected")
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`)
     })
-    .catch(err => console.log(err))
+  })
+  .catch(err => {
+    console.error("MongoDB connection failed:", err.message)
+    process.exit(1)
+  })

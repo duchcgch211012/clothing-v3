@@ -1,5 +1,13 @@
-import Product from "../models/ProductModels.js";
-import Category from "../models/CategoryModels.js";
+import mongoose from "mongoose"
+import Product from "../models/ProductModels.js"
+import Category from "../models/CategoryModels.js"
+
+const escapeRegex = (value = "") => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+
+const parsePositiveNumber = (value) => {
+  const number = Number(value)
+  return Number.isFinite(number) && number > 0 ? number : null
+}
 
 /**
  * CREATE PRODUCT
@@ -8,103 +16,126 @@ import Category from "../models/CategoryModels.js";
  */
 export const createProduct = async (req, res) => {
   try {
-    let { name, price, category } = req.body;
+    let { name, price, category } = req.body
+    name = name?.trim()
 
-    // Sanitize
-    name = name?.trim();
-
-    // Validation
     if (!name) {
-      return res.status(400).json({
-        success: false,
-        message: "Product name is required",
-      });
+      return res.status(400).json({ success: false, message: "Product name is required" })
     }
 
-    if (!price || isNaN(price) || price <= 0) {
-      return res.status(400).json({
-        success: false,
-        message: "Price must be a number greater than 0",
-      });
+    const parsedPrice = parsePositiveNumber(price)
+    if (!parsedPrice) {
+      return res.status(400).json({ success: false, message: "Price must be a number greater than 0" })
     }
 
-    if (!category) {
-      return res.status(400).json({
-        success: false,
-        message: "Category is required",
-      });
+    if (!category || !mongoose.Types.ObjectId.isValid(category)) {
+      return res.status(400).json({ success: false, message: "Valid category is required" })
     }
 
-    // Check if category exists
-    const categoryExists = await Category.findById(category);
+    const categoryExists = await Category.findById(category)
     if (!categoryExists) {
-      return res.status(400).json({
-        success: false,
-        message: "Category does not exist",
-      });
+      return res.status(400).json({ success: false, message: "Category does not exist" })
     }
 
-    // Check duplicate product name (case insensitive)
     const existingProduct = await Product.findOne({
-      name: { $regex: new RegExp(`^${name}$`, "i") },
-    });
+      name: { $regex: new RegExp(`^${escapeRegex(name)}$`, "i") },
+    })
 
     if (existingProduct) {
-      return res.status(400).json({
-        success: false,
-        message: "A product with this name already exists",
-      });
+      return res.status(400).json({ success: false, message: "A product with this name already exists" })
     }
 
     const product = await Product.create({
       ...req.body,
       name,
-      price: Number(price),
-    });
+      price: parsedPrice,
+      stock: Math.max(0, Number(req.body.stock) || 0),
+      rating: Math.min(5, Math.max(0, Number(req.body.rating) || 0)),
+      sold: Math.max(0, Number(req.body.sold) || 0),
+      discount: Math.min(100, Math.max(0, Number(req.body.discount) || 0)),
+    })
+
+    const populated = await product.populate("category", "name")
 
     res.status(201).json({
       success: true,
       message: "Product created successfully",
-      data: product,
-    });
+      data: populated,
+    })
   } catch (error) {
-    console.error("Create Product Error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Server error while creating product",
-      error: error.message,
-    });
+    console.error("Create Product Error:", error)
+    res.status(500).json({ success: false, message: "Server error while creating product", error: error.message })
   }
-};
+}
 
 /**
  * GET ALL PRODUCTS
  * @route   GET /api/products
  * @access  Public
+ * @query   search, category, hot, minPrice, maxPrice, sort, page, limit
  */
 export const getProducts = async (req, res) => {
   try {
-    const { hot } = req.query;
+    const {
+      search = "",
+      category,
+      hot,
+      minPrice,
+      maxPrice,
+      sort = "newest",
+      page = 1,
+      limit = 0,
+    } = req.query
 
-    const filter = hot === "true" ? { isHot: true } : {};
+    const filter = {}
 
-    const products = await Product.find(filter)
-      .populate("category", "name") // Chỉ lấy trường name của category
-      .sort({ createdAt: -1 }); // Mới nhất lên đầu
+    if (hot === "true") filter.isHot = true
+    if (category && category !== "all" && mongoose.Types.ObjectId.isValid(category)) filter.category = category
+    if (search.trim()) filter.name = { $regex: escapeRegex(search.trim()), $options: "i" }
+
+    const priceFilter = {}
+    if (minPrice !== undefined && Number(minPrice) >= 0) priceFilter.$gte = Number(minPrice)
+    if (maxPrice !== undefined && Number(maxPrice) >= 0) priceFilter.$lte = Number(maxPrice)
+    if (Object.keys(priceFilter).length) filter.price = priceFilter
+
+    const sortMap = {
+      newest: { createdAt: -1 },
+      oldest: { createdAt: 1 },
+      "price-asc": { price: 1 },
+      "price-desc": { price: -1 },
+      popular: { sold: -1 },
+      rating: { rating: -1 },
+    }
+
+    const pageNumber = Math.max(1, Number(page) || 1)
+    const limitNumber = Math.max(0, Math.min(100, Number(limit) || 0))
+
+    let query = Product.find(filter)
+      .populate("category", "name")
+      .sort(sortMap[sort] || sortMap.newest)
+
+    if (limitNumber > 0) {
+      query = query.skip((pageNumber - 1) * limitNumber).limit(limitNumber)
+    }
+
+    const [products, total] = await Promise.all([
+      query,
+      Product.countDocuments(filter),
+    ])
 
     res.status(200).json({
       success: true,
       count: products.length,
+      total,
+      page: pageNumber,
+      pages: limitNumber > 0 ? Math.ceil(total / limitNumber) : 1,
       data: products,
-    });
+    })
   } catch (error) {
-    console.error("Get Products Error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Server error while fetching products",
-    });
+    console.error("Get Products Error:", error)
+    res.status(500).json({ success: false, message: "Server error while fetching products" })
   }
-};
+}
 
 /**
  * GET SINGLE PRODUCT
@@ -113,30 +144,22 @@ export const getProducts = async (req, res) => {
  */
 export const getProduct = async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id).populate(
-      "category",
-      "name"
-    );
-
-    if (!product) {
-      return res.status(404).json({
-        success: false,
-        message: "Product not found",
-      });
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ success: false, message: "Invalid product id" })
     }
 
-    res.status(200).json({
-      success: true,
-      data: product,
-    });
+    const product = await Product.findById(req.params.id).populate("category", "name")
+
+    if (!product) {
+      return res.status(404).json({ success: false, message: "Product not found" })
+    }
+
+    res.status(200).json({ success: true, data: product })
   } catch (error) {
-    console.error("Get Product Error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Server error while fetching product",
-    });
+    console.error("Get Product Error:", error)
+    res.status(500).json({ success: false, message: "Server error while fetching product" })
   }
-};
+}
 
 /**
  * UPDATE PRODUCT
@@ -145,71 +168,59 @@ export const getProduct = async (req, res) => {
  */
 export const updateProduct = async (req, res) => {
   try {
-    let { name, price, category } = req.body;
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ success: false, message: "Invalid product id" })
+    }
 
-    // Validate nếu có truyền lên
-    if (name !== undefined) {
-      name = name.trim();
-      if (!name) {
-        return res.status(400).json({
-          success: false,
-          message: "Product name cannot be empty",
-        });
+    const updateData = { ...req.body }
+
+    if (updateData.name !== undefined) {
+      updateData.name = updateData.name.trim()
+      if (!updateData.name) {
+        return res.status(400).json({ success: false, message: "Product name cannot be empty" })
       }
     }
 
-    if (price !== undefined) {
-      if (isNaN(price) || price <= 0) {
-        return res.status(400).json({
-          success: false,
-          message: "Price must be a number greater than 0",
-        });
+    if (updateData.price !== undefined) {
+      const parsedPrice = parsePositiveNumber(updateData.price)
+      if (!parsedPrice) {
+        return res.status(400).json({ success: false, message: "Price must be a number greater than 0" })
       }
+      updateData.price = parsedPrice
     }
 
-    if (category) {
-      const categoryExists = await Category.findById(category);
+    if (updateData.category) {
+      if (!mongoose.Types.ObjectId.isValid(updateData.category)) {
+        return res.status(400).json({ success: false, message: "Invalid category id" })
+      }
+      const categoryExists = await Category.findById(updateData.category)
       if (!categoryExists) {
-        return res.status(400).json({
-          success: false,
-          message: "Category does not exist",
-        });
+        return res.status(400).json({ success: false, message: "Category does not exist" })
       }
     }
 
-    const updateData = {
-      ...req.body,
-      name: name || undefined,
-      price: price ? Number(price) : undefined,
-    };
+    for (const key of ["stock", "sold"]) {
+      if (updateData[key] !== undefined) updateData[key] = Math.max(0, Number(updateData[key]) || 0)
+    }
+    if (updateData.rating !== undefined) updateData.rating = Math.min(5, Math.max(0, Number(updateData.rating) || 0))
+    if (updateData.discount !== undefined) updateData.discount = Math.min(100, Math.max(0, Number(updateData.discount) || 0))
 
     const product = await Product.findByIdAndUpdate(
       req.params.id,
       updateData,
       { new: true, runValidators: true }
-    ).populate("category", "name");
+    ).populate("category", "name")
 
     if (!product) {
-      return res.status(404).json({
-        success: false,
-        message: "Product not found",
-      });
+      return res.status(404).json({ success: false, message: "Product not found" })
     }
 
-    res.status(200).json({
-      success: true,
-      message: "Product updated successfully",
-      data: product,
-    });
+    res.status(200).json({ success: true, message: "Product updated successfully", data: product })
   } catch (error) {
-    console.error("Update Product Error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Server error while updating product",
-      error: error.message,
-    });
+    console.error("Update Product Error:", error)
+    res.status(500).json({ success: false, message: "Server error while updating product", error: error.message })
   }
-};
+}
 
 /**
  * DELETE PRODUCT
@@ -218,26 +229,19 @@ export const updateProduct = async (req, res) => {
  */
 export const deleteProduct = async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id);
-
-    if (!product) {
-      return res.status(404).json({
-        success: false,
-        message: "Product not found",
-      });
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ success: false, message: "Invalid product id" })
     }
 
-    await Product.findByIdAndDelete(req.params.id);
+    const product = await Product.findByIdAndDelete(req.params.id)
 
-    res.status(200).json({
-      success: true,
-      message: "Product deleted successfully",
-    });
+    if (!product) {
+      return res.status(404).json({ success: false, message: "Product not found" })
+    }
+
+    res.status(200).json({ success: true, message: "Product deleted successfully" })
   } catch (error) {
-    console.error("Delete Product Error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Server error while deleting product",
-    });
+    console.error("Delete Product Error:", error)
+    res.status(500).json({ success: false, message: "Server error while deleting product" })
   }
-};
+}

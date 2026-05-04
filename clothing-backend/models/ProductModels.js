@@ -37,7 +37,8 @@ const productSchema = new mongoose.Schema({
 
   stock: {
     type: Number,
-    default: 0
+    default: 0,
+    min: 0
   },
 
   sizes: [
@@ -61,7 +62,8 @@ const productSchema = new mongoose.Schema({
 
   sold: {
     type: Number,
-    default: 0
+    default: 0,
+    min: 0
   },
 
   discount: {
@@ -77,5 +79,8 @@ const productSchema = new mongoose.Schema({
   }
 
 }, { timestamps: true })
+
+productSchema.index({ name: "text", description: "text" })
+productSchema.index({ category: 1, isHot: 1, createdAt: -1 })
 
 export default mongoose.model("Product", productSchema)

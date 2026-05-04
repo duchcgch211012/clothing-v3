@@ -11,8 +11,12 @@ export default function Cart() {
   const [error, setError] = useState("")
 
   useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem("cart") || "[]")
+    const saved = JSON.parse(localStorage.getItem("cart") || "[]").map((item) => ({
+      ...item,
+      cartKey: item.cartKey || `${item._id}-${item.selectedSize || "default"}-${item.selectedColor || "default"}`,
+    }))
     setCart(saved)
+    localStorage.setItem("cart", JSON.stringify(saved))
   }, [])
 
   const syncCart = (updated) => {
@@ -23,7 +27,8 @@ export default function Cart() {
   const updateQty = (cartKey, delta) => {
     const updated = cart.map(i => {
       if (i.cartKey !== cartKey) return i
-      const newQty = i.qty + delta
+      const maxQty = Math.max(1, Number(i.stock) || 1)
+      const newQty = Math.min(maxQty, i.qty + delta)
       return newQty < 1 ? null : { ...i, qty: newQty }
     }).filter(Boolean)
     syncCart(updated)
@@ -61,7 +66,7 @@ export default function Cart() {
       setCart([])
       setStep("success")
     } catch (err) {
-      setError("Order failed, please try again")
+      setError(err.friendlyMessage || "Order failed, please try again")
       console.error(err)
     } finally {
       setLoading(false)

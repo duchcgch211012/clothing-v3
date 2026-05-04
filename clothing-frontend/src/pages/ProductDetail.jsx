@@ -31,19 +31,22 @@ export default function ProductDetail() {
   }, [id])
 
   const addToCart = () => {
-    if (product.stock === 0) return
+    if (!product || product.stock === 0) return false
+
     const cart = JSON.parse(localStorage.getItem("cart") || "[]")
-    const key = product._id + selectedSize + selectedColor
+    const key = `${product._id}-${selectedSize || "default"}-${selectedColor || "default"}`
     const existing = cart.find(i => i.cartKey === key)
     const salePrice = product.discount > 0
       ? Math.round(product.price * (1 - product.discount / 100))
       : product.price
+    const safeQty = Math.min(product.stock, Math.max(1, qty))
     const updated = existing
-      ? cart.map(i => i.cartKey === key ? { ...i, qty: i.qty + qty } : i)
-      : [...cart, { ...product, price: salePrice, qty, selectedSize, selectedColor, cartKey: key }]
+      ? cart.map(i => i.cartKey === key ? { ...i, qty: Math.min(product.stock, i.qty + safeQty) } : i)
+      : [...cart, { ...product, price: salePrice, qty: safeQty, selectedSize, selectedColor, cartKey: key }]
     localStorage.setItem("cart", JSON.stringify(updated))
     setAdded(true)
     setTimeout(() => setAdded(false), 2000)
+    return true
   }
 
   if (loading) return (
@@ -236,7 +239,7 @@ export default function ProductDetail() {
                 {added ? "✓ Đã thêm vào giỏ!" : "Thêm vào giỏ hàng"}
               </button>
               <button
-                onClick={() => { addToCart(); navigate("/cart") }}
+                onClick={() => { if (addToCart()) navigate("/cart") }}
                 disabled={product.stock === 0}
                 style={{
                   ...styles.buyNowBtn,

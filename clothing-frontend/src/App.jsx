@@ -7,6 +7,13 @@ import Admin from "./pages/Admin"
 import ProductDetail from "./pages/ProductDetail"
 import Cart from "./pages/Cart"
 
+
+function RootRedirect() {
+  const user = JSON.parse(localStorage.getItem("user") || "null")
+  if (!user?.token) return <Navigate to="/login" replace />
+  return <Navigate to={user.role === "admin" ? "/admin" : "/home"} replace />
+}
+
 function PrivateRoute({ children }) {
   const user = JSON.parse(localStorage.getItem("user"))
   return user?.token ? children : <Navigate to="/login" replace />
@@ -23,7 +30,7 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="/" element={<RootRedirect />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/home" element={<PrivateRoute><Home /></PrivateRoute>} />

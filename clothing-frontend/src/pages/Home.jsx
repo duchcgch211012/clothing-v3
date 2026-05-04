@@ -11,6 +11,7 @@ export default function Home() {
   const [categories, setCategories] = useState([])
   const [selectedCategory, setSelectedCategory] = useState("all")
   const [search, setSearch] = useState("")
+  const [sortBy, setSortBy] = useState("newest")
   const [loading, setLoading] = useState(true)
   const [cart, setCart] = useState(() => JSON.parse(localStorage.getItem("cart") || "[]"))
 
@@ -50,21 +51,37 @@ export default function Home() {
   }
 
   const addToCart = (product) => {
-    const existing = cart.find(i => i._id === product._id)
+    if (!product || product.stock === 0) return
+
+    const cartKey = `${product._id}-default-default`
+    const salePrice = product.discount > 0
+      ? Math.round(product.price * (1 - product.discount / 100))
+      : product.price
+
+    const existing = cart.find(i => i.cartKey === cartKey)
     const updated = existing
-      ? cart.map(i => i._id === product._id ? { ...i, qty: i.qty + 1 } : i)
-      : [...cart, { ...product, qty: 1 }]
+      ? cart.map(i => i.cartKey === cartKey ? { ...i, qty: Math.min(product.stock, i.qty + 1) } : i)
+      : [...cart, { ...product, price: salePrice, qty: 1, selectedSize: "", selectedColor: "", cartKey }]
+
     setCart(updated)
     localStorage.setItem("cart", JSON.stringify(updated))
   }
 
   const cartCount = cart.reduce((sum, i) => sum + i.qty, 0)
 
-  const filtered = products.filter(p => {
-    const matchCat = selectedCategory === "all" || p.category?._id === selectedCategory
-    const matchSearch = p.name.toLowerCase().includes(search.toLowerCase())
-    return matchCat && matchSearch
-  })
+  const filtered = products
+    .filter(p => {
+      const matchCat = selectedCategory === "all" || p.category?._id === selectedCategory
+      const matchSearch = p.name.toLowerCase().includes(search.toLowerCase())
+      return matchCat && matchSearch
+    })
+    .sort((a, b) => {
+      if (sortBy === "price-asc") return a.price - b.price
+      if (sortBy === "price-desc") return b.price - a.price
+      if (sortBy === "popular") return (b.sold || 0) - (a.sold || 0)
+      if (sortBy === "rating") return (b.rating || 0) - (a.rating || 0)
+      return new Date(b.createdAt || 0) - new Date(a.createdAt || 0)
+    })
 
   return (
     <div style={styles.page}>
@@ -97,22 +114,32 @@ export default function Home() {
 
       <div style={styles.container}>
 
-        <div style={styles.categoryBar}>
-          <button
-            onClick={() => setSelectedCategory("all")}
-            style={{ ...styles.catBtn, ...(selectedCategory === "all" ? styles.catBtnActive : {}) }}
-          >
-            All
-          </button>
-          {categories.map(cat => (
+        <div style={styles.toolbar}>
+          <div style={styles.categoryBar}>
             <button
-              key={cat._id}
-              onClick={() => setSelectedCategory(cat._id)}
-              style={{ ...styles.catBtn, ...(selectedCategory === cat._id ? styles.catBtnActive : {}) }}
+              onClick={() => setSelectedCategory("all")}
+              style={{ ...styles.catBtn, ...(selectedCategory === "all" ? styles.catBtnActive : {}) }}
             >
-              {cat.name}
+              All
             </button>
-          ))}
+            {categories.map(cat => (
+              <button
+                key={cat._id}
+                onClick={() => setSelectedCategory(cat._id)}
+                style={{ ...styles.catBtn, ...(selectedCategory === cat._id ? styles.catBtnActive : {}) }}
+              >
+                {cat.name}
+              </button>
+            ))}
+          </div>
+
+          <select value={sortBy} onChange={e => setSortBy(e.target.value)} style={styles.sortSelect}>
+            <option value="newest">Mới nhất</option>
+            <option value="popular">Bán chạy</option>
+            <option value="rating">Đánh giá cao</option>
+            <option value="price-asc">Giá thấp đến cao</option>
+            <option value="price-desc">Giá cao đến thấp</option>
+          </select>
         </div>
 
         {!loading && hotProducts.length > 0 && (
@@ -274,7 +301,9 @@ const styles = {
   cartBadge: { position: "absolute", top: "-6px", right: "-6px", background: "#ef4444", color: "#fff", fontSize: "10px", fontWeight: "700", borderRadius: "50%", width: "18px", height: "18px", display: "flex", alignItems: "center", justifyContent: "center" },
   logoutBtn: { padding: "8px 16px", background: "none", border: "1px solid #e5e7eb", borderRadius: "10px", fontSize: "13px", cursor: "pointer", color: "#374151" },
   container: { maxWidth: "1200px", margin: "0 auto", padding: "1.5rem" },
-  categoryBar: { display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "1.5rem" },
+  toolbar: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "1rem", flexWrap: "wrap", marginBottom: "1.5rem" },
+  categoryBar: { display: "flex", gap: "8px", flexWrap: "wrap", flex: 1 },
+  sortSelect: { padding: "8px 12px", borderRadius: "10px", border: "1.5px solid #e5e7eb", background: "#fff", fontSize: "13px", color: "#374151" },
   catBtn: { padding: "7px 16px", borderRadius: "20px", border: "1.5px solid #e5e7eb", background: "#fff", fontSize: "13px", cursor: "pointer", color: "#374151", fontWeight: "400", transition: "all 0.15s" },
   catBtnActive: { background: "#111", color: "#fff", borderColor: "#111", fontWeight: "500" },
   sectionHeader: { display: "flex", alignItems: "baseline", gap: "10px", marginBottom: "1rem" },
