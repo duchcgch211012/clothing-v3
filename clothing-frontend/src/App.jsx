@@ -6,6 +6,8 @@ import Home from "./pages/Home"
 import Admin from "./pages/Admin"
 import ProductDetail from "./pages/ProductDetail"
 import Cart from "./pages/Cart"
+import MyOrders from "./pages/MyOrders"
+import OrderDetail from "./pages/OrderDetail"
 
 
 function RootRedirect() {
@@ -39,7 +41,8 @@ function App() {
         <Route path="/cart" element={<PrivateRoute><Cart /></PrivateRoute>} />
 
         <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
-
+      <Route path="/my-orders" element={<MyOrders />} />
+      <Route path="/my-orders/:id" element={<OrderDetail />} /> 
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>

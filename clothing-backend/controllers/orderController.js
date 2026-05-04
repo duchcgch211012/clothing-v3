@@ -78,7 +78,7 @@ export const createOrder = async (req, res) => {
     const createdOrder = await Order.create({
       user: req.user.id,
       products: orderItems,
-      totalPrice,
+      totalPrice, 
       shippingAddress: shippingAddress.trim(),
       phone: phone.trim(),
     })
@@ -109,7 +109,81 @@ export const getMyOrders = async (req, res) => {
     res.status(500).json({ success: false, message: "Server error while fetching your orders" })
   }
 }
-
+export const getMyOrderById = async (req, res) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ success: false, message: "Invalid order id" })
+    }
+ 
+    const order = await Order.findById(req.params.id)
+      .populate("products.product", "name image")
+ 
+    if (!order) {
+      return res.status(404).json({ success: false, message: "Order not found" })
+    }
+ 
+    if (order.user.toString() !== req.user.id) {
+      return res.status(403).json({ success: false, message: "You are not authorized to view this order" })
+    }
+ 
+    res.json({ success: true, data: order })
+  } catch (error) {
+    console.error("Get My Order By Id Error:", error)
+    res.status(500).json({ success: false, message: "Server error while fetching order" })
+  }
+}
+ 
+/**
+ * CANCEL ORDER (owner only, only when status = pending)
+ * @route   PATCH /api/orders/my/:id/cancel
+ * @access  Private
+ */
+export const cancelMyOrder = async (req, res) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ success: false, message: "Invalid order id" })
+    }
+ 
+    const order = await Order.findById(req.params.id)
+ 
+    if (!order) {
+      return res.status(404).json({ success: false, message: "Order not found" })
+    }
+ 
+    if (order.user.toString() !== req.user.id) {
+      return res.status(403).json({ success: false, message: "You are not authorized to cancel this order" })
+    }
+ 
+    if (order.status !== "pending") {
+      return res.status(400).json({
+        success: false,
+        message: "Only pending orders can be cancelled",
+      })
+    }
+ 
+    // Hoàn lại stock cho từng sản phẩm
+    const restoreOperations = order.products.map(item => ({
+      updateOne: {
+        filter: { _id: item.product },
+        update: { $inc: { stock: item.quantity, sold: -item.quantity } },
+      },
+    }))
+ 
+    await Product.bulkWrite(restoreOperations)
+ 
+    order.status = "cancelled"
+    await order.save()
+ 
+    const populated = await Order.findById(order._id)
+      .populate("products.product", "name image")
+ 
+    res.json({ success: true, message: "Order cancelled successfully", data: populated })
+  } catch (error) {
+    console.error("Cancel My Order Error:", error)
+    res.status(500).json({ success: false, message: "Server error while cancelling order" })
+  }
+}
+ 
 export const getOrders = async (req, res) => {
   try {
     const orders = await Order.find()

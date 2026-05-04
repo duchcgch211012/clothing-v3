@@ -79,7 +79,15 @@ export default function Cart() {
         <div style={styles.successIcon}>✓</div>
         <h2 style={styles.successTitle}>Order Placed Successfully!</h2>
         <p style={styles.successSub}>Thank you for your purchase. We will process your order as soon as possible.</p>
-        <button onClick={() => navigate("/home")} style={styles.primaryBtn}>Continue Shopping</button>
+        {/* ── 2 nút: xem đơn hàng + tiếp tục mua ── */}
+        <div style={styles.successBtns}>
+          <button onClick={() => navigate("/my-orders")} style={styles.primaryBtn}>
+            Xem đơn hàng của tôi
+          </button>
+          <button onClick={() => navigate("/home")} style={styles.secondaryBtn}>
+            Tiếp tục mua sắm
+          </button>
+        </div>
       </div>
     </div>
   )
@@ -276,6 +284,9 @@ const styles = {
   input: { width: "100%", padding: "11px 14px", fontSize: "14px", border: "1.5px solid #e5e7eb", borderRadius: "10px", outline: "none", boxSizing: "border-box", background: "#fafafa", color: "#111" },
   errorBox: { display: "flex", alignItems: "center", gap: "8px", background: "#fff1f1", border: "1px solid #fca5a5", borderRadius: "8px", padding: "10px 12px", fontSize: "13px", color: "#dc2626" },
   primaryBtn: { padding: "12px 24px", background: "#111", color: "#fff", border: "none", borderRadius: "10px", fontSize: "15px", fontWeight: "600", cursor: "pointer" },
+  // ── Success screen ──
+  successBtns: { display: "flex", flexDirection: "column", gap: "10px", alignItems: "center", width: "100%", maxWidth: "280px" },
+  secondaryBtn: { padding: "12px 24px", background: "#fff", color: "#374151", border: "1.5px solid #e5e7eb", borderRadius: "10px", fontSize: "14px", fontWeight: "500", cursor: "pointer", width: "100%" },
   backLinkBtn: { background: "none", border: "none", color: "#6b7280", fontSize: "13px", cursor: "pointer", padding: 0, marginTop: "0.5rem" },
   emptyWrap: { display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "400px", gap: "1rem" },
   emptyText: { fontSize: "16px", color: "#6b7280" },

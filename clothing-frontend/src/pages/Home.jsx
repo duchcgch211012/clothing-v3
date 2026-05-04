@@ -100,10 +100,22 @@ export default function Home() {
           </div>
           <div style={styles.navRight}>
             <span style={styles.navUser}>Hello, {user?.username}</span>
+
+            {/* ── My Orders button ── */}
+            <button onClick={() => navigate("/my-orders")} style={styles.ordersBtn}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
+                <rect x="9" y="3" width="6" height="4" rx="1" />
+                <line x1="9" y1="12" x2="15" y2="12" />
+                <line x1="9" y1="16" x2="13" y2="16" />
+              </svg>
+              Đơn hàng
+            </button>
+
             <button onClick={() => navigate("/cart")} style={styles.cartBtn}>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
-                <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+                <circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" />
+                <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
               </svg>
               {cartCount > 0 && <span style={styles.cartBadge}>{cartCount}</span>}
             </button>
@@ -178,7 +190,7 @@ export default function Home() {
         ) : filtered.length === 0 ? (
           <div style={styles.center}>
             <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" strokeWidth="1.5">
-              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
             </svg>
             <p style={{ color: "#6b7280", marginTop: "1rem" }}>No products found</p>
           </div>
@@ -210,9 +222,9 @@ function ProductCard({ product, navigate, addToCart, isHot = false }) {
         ) : (
           <div style={styles.imgPlaceholder}>
             <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" strokeWidth="1.5">
-              <rect x="3" y="3" width="18" height="18" rx="2"/>
-              <circle cx="8.5" cy="8.5" r="1.5"/>
-              <polyline points="21 15 16 10 5 21"/>
+              <rect x="3" y="3" width="18" height="18" rx="2" />
+              <circle cx="8.5" cy="8.5" r="1.5" />
+              <polyline points="21 15 16 10 5 21" />
             </svg>
           </div>
         )}
@@ -242,7 +254,7 @@ function ProductCard({ product, navigate, addToCart, isHot = false }) {
 
         {product.rating > 0 && (
           <div style={styles.ratingRow}>
-            {[1,2,3,4,5].map(s => (
+            {[1, 2, 3, 4, 5].map(s => (
               <span key={s} style={{ color: s <= Math.round(product.rating) ? "#f59e0b" : "#e5e7eb", fontSize: "13px" }}>★</span>
             ))}
             <span style={{ fontSize: "12px", color: "#9ca3af", marginLeft: "4px" }}>({product.sold} sold)</span>
@@ -272,21 +284,25 @@ function PriceDisplay({ product }) {
   if (product.discount > 0) {
     const salePrice = Math.round(product.price * (1 - product.discount / 100))
     return (
-      <div>
+      <div style={{ minHeight: "40px" }}> {/* 👈 FIX CHÍNH */}
         <span style={{ fontSize: "11px", color: "#9ca3af", textDecoration: "line-through", display: "block", lineHeight: 1.4 }}>
           {product.price.toLocaleString("vi-VN")}₫
         </span>
-        <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-          <span style={{ fontSize: "15px", fontWeight: "700", color: "#ef4444" }}>
-            {salePrice.toLocaleString("vi-VN")}₫
-          </span>
-        </div>
+        <span style={{ fontSize: "15px", fontWeight: "700", color: "#ef4444" }}>
+          {salePrice.toLocaleString("vi-VN")}₫
+        </span>
       </div>
     )
   }
-  return <span style={styles.price}>{product.price.toLocaleString("vi-VN")}₫</span>
-}
 
+  return (
+    <div style={{ minHeight: "40px", display: "flex", alignItems: "flex-end" }}> {/* 👈 FIX */}
+      <span style={styles.price}>
+        {product.price.toLocaleString("vi-VN")}₫
+      </span>
+    </div>
+  )
+}
 
 const styles = {
   page: { minHeight: "100vh", background: "#f5f5f5" },
@@ -297,6 +313,8 @@ const styles = {
   searchInput: { width: "100%", padding: "9px 14px", fontSize: "14px", border: "1.5px solid #e5e7eb", borderRadius: "10px", outline: "none", background: "#fafafa", boxSizing: "border-box" },
   navRight: { display: "flex", alignItems: "center", gap: "12px", whiteSpace: "nowrap" },
   navUser: { fontSize: "13px", color: "#6b7280" },
+  // ── My Orders button ──
+  ordersBtn: { display: "flex", alignItems: "center", gap: "6px", background: "none", border: "1px solid #e5e7eb", borderRadius: "10px", padding: "7px 14px", fontSize: "13px", cursor: "pointer", color: "#374151" },
   cartBtn: { position: "relative", background: "none", border: "1px solid #e5e7eb", borderRadius: "10px", padding: "7px 10px", cursor: "pointer", display: "flex", alignItems: "center", color: "#374151" },
   cartBadge: { position: "absolute", top: "-6px", right: "-6px", background: "#ef4444", color: "#fff", fontSize: "10px", fontWeight: "700", borderRadius: "50%", width: "18px", height: "18px", display: "flex", alignItems: "center", justifyContent: "center" },
   logoutBtn: { padding: "8px 16px", background: "none", border: "1px solid #e5e7eb", borderRadius: "10px", fontSize: "13px", cursor: "pointer", color: "#374151" },
@@ -325,9 +343,27 @@ const styles = {
   cardCategory: { fontSize: "11px", color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 4px" },
   cardName: { fontSize: "14px", fontWeight: "500", color: "#111", margin: "0 0 6px", cursor: "pointer", lineHeight: "1.4", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" },
   ratingRow: { display: "flex", alignItems: "center", marginBottom: "8px" },
-  cardFooter: { display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "8px" },
+  cardFooter: {
+    display: "flex",
+    alignItems: "flex-end",  
+    justifyContent: "space-between",
+    marginTop: "8px"
+  },
   price: { fontSize: "15px", fontWeight: "700", color: "#111" },
-  addBtn: { padding: "6px 12px", background: "#111", color: "#fff", border: "none", borderRadius: "8px", fontSize: "12px", fontWeight: "500", cursor: "pointer" },
+  addBtn: {
+    height: "32px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "0 12px",
+    background: "#111",
+    color: "#fff",
+    border: "none",
+    borderRadius: "8px",
+    fontSize: "12px",
+    fontWeight: "500",
+    cursor: "pointer"
+  },
   center: { display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "300px" },
   spinner: { width: "32px", height: "32px", border: "3px solid #e5e7eb", borderTop: "3px solid #111", borderRadius: "50%", animation: "spin 0.8s linear infinite" },
 }
