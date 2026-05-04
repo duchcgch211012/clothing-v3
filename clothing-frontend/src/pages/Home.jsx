@@ -11,14 +11,21 @@ export default function Home() {
   const [categories, setCategories] = useState([])
   const [selectedCategory, setSelectedCategory] = useState("all")
   const [search, setSearch] = useState("")
+const [debouncedSearch, setDebouncedSearch] = useState("")
   const [loading, setLoading] = useState(true)
   const [cart, setCart] = useState(() => JSON.parse(localStorage.getItem("cart") || "[]"))
-
+const [sortType, setSortType] = useState("default")
   useEffect(() => {
     fetchProducts()
     fetchCategories()
   }, [])
+  useEffect(() => {
+  const timeout = setTimeout(() => {
+    setDebouncedSearch(search)
+  }, 300)
 
+  return () => clearTimeout(timeout)
+}, [search])
   const fetchProducts = async () => {
     try {
       const [allRes, hotRes] = await Promise.all([
@@ -60,11 +67,26 @@ export default function Home() {
 
   const cartCount = cart.reduce((sum, i) => sum + i.qty, 0)
 
-  const filtered = products.filter(p => {
+  
+  const filtered = products
+  .filter(p => {
     const matchCat = selectedCategory === "all" || p.category?._id === selectedCategory
-    const matchSearch = p.name.toLowerCase().includes(search.toLowerCase())
+    const matchSearch = p.name.toLowerCase().includes(debouncedSearch.toLowerCase())
     return matchCat && matchSearch
   })
+    .sort((a, b) => {
+    if (sortType === "price_asc") {
+      return a.price - b.price
+    }
+    if (sortType === "price_desc") {
+      return b.price - a.price
+    }
+    if (sortType === "name_asc") {
+      return a.name.localeCompare(b.name)
+    }
+    return 0
+  })
+
 
   return (
     <div style={styles.page}>
@@ -113,6 +135,13 @@ export default function Home() {
               {cat.name}
             </button>
           ))}
+
+          <select value={sortType} onChange={e => setSortType(e.target.value)}>
+  <option value="default">Mặc định</option>
+  <option value="price_asc">Giá tăng dần</option>
+  <option value="price_desc">Giá giảm dần</option>
+  <option value="name_asc">Tên A-Z</option>
+</select>
         </div>
 
     

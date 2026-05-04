@@ -134,7 +134,7 @@ function Dashboard() {
   {recentOrders.map(order => (
     <tr key={order._id} style={styles.tr}>
       
-      {/* 👇 ID */}
+       
       <td style={styles.td}>
         {order._id.slice(0, 6)}...
       </td>
@@ -212,7 +212,7 @@ function Products() {
     return alert("Vui lòng nhập đầy đủ thông tin bắt buộc")
   }
 
-  // ✅ check trùng ở frontend
+  //  check trùng ở frontend
   const isDuplicate = products.some(
     p =>
       p.name.trim().toLowerCase() === form.name.trim().toLowerCase() &&
@@ -254,7 +254,7 @@ function Products() {
   } catch (err) {
     console.error(err)
 
-    // ✅ HIỂN THỊ LỖI
+    // HIỂN THỊ LỖI
     const message =
       err.response?.data?.message ||
       "Sản phẩm đã tồn tại hoặc có lỗi xảy ra"
@@ -453,16 +453,21 @@ const handleSubmit = async () => {
     setSaving(false)
   }
 }
-
- const handleDelete = async (cat) => {
+const handleDelete = async (cat) => {
   if (!window.confirm(`Bạn có chắc chắn muốn xoá danh mục "${cat.name}" không?`)) return
 
   try {
     await API.delete(`/categories/${cat._id}`)
     fetchCategories()
   } catch (err) {
-    console.error(err)
-  }
+  console.error(err)
+
+  const message =
+    err.response?.data?.message ||
+    "Có lỗi xảy ra"
+
+  alert(message)
+}
 }
 
   if (loading) return <Spinner />
